@@ -1,6 +1,7 @@
 import { App, Plugin, TFile } from 'obsidian';
+import { MergedDataStore } from './services/datastore';
 import { Document, DocumentMetadata } from './models/models';
-import { MergedDataStore } from 'api/datastore';
+
 
 
 export default class MyPlugin extends Plugin {
@@ -24,10 +25,12 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const ribbonIconEl = this.addRibbonIcon('lines-of-text', 'List All Files', (evt: MouseEvent) => {
 			this.listAllFiles();
 		});
 
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const ribbonIconEl2 = this.addRibbonIcon('file-text', 'Convert Files to Documents', (evt: MouseEvent) => {
 			this.convertFilesToDocuments();
 		});
@@ -45,7 +48,7 @@ export default class MyPlugin extends Plugin {
 
 	async convertFilesToDocuments() {
 		let log = '';
-		let documents: Document[] = [];
+		const documents: Document[] = [];
 		for (const file of this.app.vault.getFiles()) {
 			if (file.extension === 'md') {
 				const content = await this.app.vault.read(file);

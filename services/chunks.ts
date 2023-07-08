@@ -1,7 +1,8 @@
 import {OpenAI} from './openai';
 import {Document, DocumentChunk} from '../models/models';
 import {v4} from 'uuid';
-import {get_encoding, Tiktoken} from 'tiktoken';
+//import {get_encoding, Tiktoken, init } from "@dqbd/tiktoken/init";
+import {Tiktoken, getEncoding } from "js-tiktoken";
 
 export class Chunks {
 	private CHUNK_SIZE = 200;
@@ -14,19 +15,17 @@ export class Chunks {
 
 	constructor() {
 		this.openai = new OpenAI();
-		this.tokenizer = get_encoding(
-			"cl100k_base"
-		)
+		this.tokenizer = getEncoding("cl100k_base");
 	}
 
 	public async getDocumentChunks(documents: Document[], chunk_token_size?: number): Promise<{
 		[id: string]: DocumentChunk[]
 	}> {
-		let chunks: { [id: string]: DocumentChunk[] } = {};
-		let all_chunks: DocumentChunk[] = [];
+		const chunks: { [id: string]: DocumentChunk[] } = {};
+		const all_chunks: DocumentChunk[] = [];
 
-		for (let doc of documents) {
-			let [doc_chunks, doc_id] = this.createDocumentChunks(doc, chunk_token_size);
+		for (const doc of documents) {
+			const [doc_chunks, doc_id] = this.createDocumentChunks(doc, chunk_token_size);
 			all_chunks.push(...doc_chunks);
 			chunks[doc_id] = doc_chunks;
 		}
@@ -35,10 +34,10 @@ export class Chunks {
 			return {};
 		}
 
-		let embeddings: number[][] = [];
+		const embeddings: number[][] = [];
 		for (let i = 0; i < all_chunks.length; i += this.EMBEDDINGS_BATCH_SIZE) {
-			let batch_texts = all_chunks.slice(i, i + this.EMBEDDINGS_BATCH_SIZE).map(chunk => chunk.text);
-			let batch_embeddings = await this.openai.getEmbeddings(batch_texts);
+			const batch_texts = all_chunks.slice(i, i + this.EMBEDDINGS_BATCH_SIZE).map(chunk => chunk.text);
+			const batch_embeddings = await this.openai.getEmbeddings(batch_texts);
 			embeddings.push(...batch_embeddings);
 		}
 
@@ -53,22 +52,21 @@ export class Chunks {
 		if (!text || text.trim() === '') {
 			return [];
 		}
-		let textDecoder = new TextDecoder('utf-8');
 		let tokens = this.tokenizer.encode(text);
-		let chunks = [];
-		let chunk_size = chunk_token_size || this.CHUNK_SIZE;
+		const chunks = [];
+		const chunk_size = chunk_token_size || this.CHUNK_SIZE;
 		let num_chunks = 0;
 
 		while (tokens.length > 0 && num_chunks < this.MAX_NUM_CHUNKS) {
-			let chunk = tokens.slice(0, chunk_size);
-			let chunk_text = textDecoder.decode(this.tokenizer.decode(chunk));
+			const chunk = tokens.slice(0, chunk_size);
+			let chunk_text = this.tokenizer.decode(chunk);
 
 			if (!chunk_text || chunk_text.trim() === '') {
 				tokens = tokens.slice(chunk.length);
 				continue;
 			}
 
-			let last_punctuation = Math.max(
+			const last_punctuation = Math.max(
 				chunk_text.lastIndexOf('.'),
 				chunk_text.lastIndexOf('?'),
 				chunk_text.lastIndexOf('!'),
@@ -79,7 +77,7 @@ export class Chunks {
 				chunk_text = chunk_text.slice(0, last_punctuation + 1);
 			}
 
-			let chunk_text_to_append = chunk_text.replace('\n', ' ').trim();
+			const chunk_text_to_append = chunk_text.replace('\n', ' ').trim();
 
 			if (chunk_text_to_append.length > this.MIN_CHUNK_LENGTH_TO_EMBED) {
 				chunks.push(chunk_text_to_append);
@@ -90,7 +88,7 @@ export class Chunks {
 		}
 
 		if (tokens.length > 0) {
-			let remaining_text = textDecoder.decode(this.tokenizer.decode(tokens)).replace('\n', ' ').trim();
+			const remaining_text = this.tokenizer.decode(tokens).replace('\n', ' ').trim();
 			if (remaining_text.length > this.MIN_CHUNK_LENGTH_TO_EMBED) {
 				chunks.push(remaining_text);
 			}
@@ -104,11 +102,11 @@ export class Chunks {
 			return [[], doc.id || v4()];
 		}
 
-		let doc_id = doc.id || v4();
-		let text_chunks = this.getTextChunks(doc.text, chunk_token_size);
-		let metadata = doc.metadata ? {...doc.metadata, document_id: doc_id} : {document_id: doc_id};
-		let doc_chunks = text_chunks.map((text_chunk, i) => {
-			let chunk_id = `${doc_id}_${i}`;
+		const doc_id = doc.id || v4();
+		const text_chunks = this.getTextChunks(doc.text, chunk_token_size);
+		const metadata = doc.metadata ? {...doc.metadata, document_id: doc_id} : {document_id: doc_id};
+		const doc_chunks = text_chunks.map((text_chunk, i) => {
+			const chunk_id = `${doc_id}_${i}`;
 			return new DocumentChunk({id: chunk_id, text: text_chunk, metadata: metadata});
 		});
 

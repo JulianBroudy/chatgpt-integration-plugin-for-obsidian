@@ -7,14 +7,14 @@ export class OpenAI {
 
 	constructor() {
 		const configuration = new Configuration({
-			apiKey: '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',
+			apiKey: process.env['OPENAI_API_KEY'],
 		});
 		this.openai = new OpenAIApi(configuration);
 	}
 
 	@Retryable({maxAttempts: 3, backOff: 1000, backOffPolicy: BackOffPolicy.ExponentialBackOffPolicy})
 	async getEmbeddings(texts: string[]): Promise<number[][]> {
-		let response = await this.openai.createEmbedding({model: 'text-embedding-ada-002', input: texts});
+		const response = await this.openai.createEmbedding({model: 'text-embedding-ada-002', input: texts});
 		const data = response.data.data; // Get the 'data' property of the response's 'data' property
 		return data.map(result => result.embedding);
 	}
