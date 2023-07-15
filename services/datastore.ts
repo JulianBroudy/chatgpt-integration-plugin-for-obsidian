@@ -6,54 +6,90 @@ import {
 	DocumentMetadataFilter,
 	QueryResult,
 	QueryWithEmbedding
-} from "../models/models";
+} from "../models/Models";
 import {Chunks} from './chunks';
-import * as process from 'process';
+import LOGGER from 'utils/Logger';
+import {ChatGPTEnablerSettings} from 'interfaces/ISettings';
+import IUpdatableClient from "../interfaces/IUpdatableClient";
+import {Notice} from "obsidian";
 
-const DEFAULT_SUPABASE_URL = 'http://localhost:54321';
 
-export class MergedDataStore {
-	client: SupabaseClient
-	chunks: Chunks
-
-	constructor() {
-		const SUPABASE_URL = process.env['SUPABASE_URL'];
-		const SUPABASE_ANON_KEY = process.env['SUPABASE_ANON_KEY'];
-		const SUPABASE_SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'];
-		if (!SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
-			throw new Error('At least one of [SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY] must be set.');
-		}
-		this.client = createClient(SUPABASE_URL || DEFAULT_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY);
-		this.chunks = new Chunks();
+export class MergedDataStore implements IUpdatableClient {
+	private client: SupabaseClient;
+	private chunks: Chunks;
+	private settings: ChatGPTEnablerSettings;
+	private lastConnectionConfigurations = {
+		"serviceRoleKey": '',
+		"anonKey": '',
+		"url": ''
 	}
 
+	constructor(settings: ChatGPTEnablerSettings, chunks: Chunks) {
+		this.settings = settings;
+		this.chunks = chunks;
+		this.updateClient();
+	}
+
+	async updateClient(): Promise<void> {
+		const activeKey = this.settings.supabaseKeys.currentlyActiveKey;
+		const activeKeyValue = this.settings.supabaseKeys[activeKey].value;
+
+		if (!activeKeyValue) {
+			const errorMessage = `The currently active key [${activeKey}] must be set.`;
+			LOGGER.error(errorMessage);
+			throw new Error(errorMessage);
+		}
+
+		if (this.client) {
+			// Update the existing client with the new settings
+			if (this.lastConnectionConfigurations[activeKey] !== activeKeyValue || this.settings.supabaseUrl !== this.lastConnectionConfigurations['url']) {
+				// Only create a new client if the active key has changed
+				const {error} = await this.client.auth.signOut();
+				if (error) LOGGER.error('Error logging out:', error);
+				this.client = createClient(this.settings.supabaseUrl, activeKeyValue);
+			} else {
+				new Notice("The configurations are identical to previous ones.")
+			}
+		} else {
+			this.client = createClient(this.settings.supabaseUrl, activeKeyValue);
+		}
+
+		// Update the lastKeys object
+		this.lastConnectionConfigurations[activeKey] = activeKeyValue;
+		this.lastConnectionConfigurations['url'] = this.settings.supabaseUrl;
+	}
+
+
 	async upsert(table: string, documents: Document[], chunkTokenSize?: number): Promise<string[]> {
+		LOGGER.debug("Deleting existing documents...");
 		// Delete any existing vectors for documents with the input document ids
 		await Promise.all(
 			documents
 				.filter(document => document.id)
-				.map(document => this.deleteByFilters(table, {document_id: document.id}))
+				.map(document => this.deleteByFilters(table, {documentId: document.id}))
 		);
 
 		const chunks = await this.chunks.getDocumentChunks(documents, chunkTokenSize);
 
+		LOGGER.debug("Upserting chunks...");
 		// Iterate over each chunk array and upsert it into the database
-		for (const document_id of Object.keys(chunks)) {
-			for (const chunk of chunks[document_id]) {
+		for (const documentId of Object.keys(chunks)) {
+			for (const chunk of chunks[documentId]) {
 				const json: any = {
 					"id": chunk.id,
 					"content": chunk.text,
 					"embedding": chunk.embedding,
-					"document_id": document_id,
+					"documentId": documentId,
 					"source": chunk.metadata.source,
-					"source_id": chunk.metadata.source_id,
+					"sourceId": chunk.metadata.sourceId,
 					"url": chunk.metadata.url,
 					"author": chunk.metadata.author
 				};
-				if (chunk.metadata.created_at) {
-					console.log('chunk.metadata.created_at:', chunk.metadata.created_at);
-					json["created_at"] = new Date(Number(chunk.metadata.created_at)).toISOString();
+				if (chunk.metadata.createdAt) {
+					console.log('chunk.metadata.createdAt:', chunk.metadata.createdAt);
+					json["createdAt"] = new Date(Number(chunk.metadata.createdAt)).toISOString();
 				}
+				LOGGER.debug("Upserting [{}]", json);
 				await this.client.from(table).upsert(json);
 			}
 		}
@@ -63,8 +99,8 @@ export class MergedDataStore {
 
 	private async _upsert(table: string, chunks: any[]): Promise<void> {
 		for (const chunk of chunks) {
-			if (chunk.created_at) {
-				chunk.created_at = chunk.created_at[0].toISOString();
+			if (chunk.createdAt) {
+				chunk.createdAt = chunk.createdAt[0].toISOString();
 			}
 			await this.client.from(table).upsert(chunk);
 		}
@@ -92,23 +128,23 @@ export class MergedDataStore {
 
 	async deleteByFilters(table: string, filter: DocumentMetadataFilter): Promise<void> {
 		let builder = this.client.from(table).delete()
-		if (filter.document_id) {
-			builder = builder.eq('document_id', filter.document_id)
+		if (filter.documentId) {
+			builder = builder.eq('document_id', filter.documentId)
 		}
 		if (filter.source) {
 			builder = builder.eq('source', filter.source)
 		}
-		if (filter.source_id) {
-			builder = builder.eq('source_id', filter.source_id)
+		if (filter.sourceId) {
+			builder = builder.eq('source_id', filter.sourceId)
 		}
 		if (filter.author) {
 			builder = builder.eq('author', filter.author)
 		}
-		if (filter.start_date) {
-			builder = builder.gte('created_at', new Date(Number(filter.start_date)).toISOString())
+		if (filter.startDate) {
+			builder = builder.gte('createdAt', new Date(Number(filter.startDate)).toISOString())
 		}
-		if (filter.end_date) {
-			builder = builder.lte('created_at', new Date(Number(filter.end_date)).toISOString())
+		if (filter.endDate) {
+			builder = builder.lte('createdAt', new Date(Number(filter.endDate)).toISOString())
 		}
 		await builder
 	}
@@ -120,27 +156,27 @@ export class MergedDataStore {
 			const params: any = {
 				in_query: query.query,
 				in_embedding: query.embedding,
-				in_top_k: query.top_k || 3
+				in_top_k: query.topK || 3
 			};
 
 			if (query.filter) {
-				if (query.filter.document_id) {
-					params.in_document_id = query.filter.document_id;
+				if (query.filter.documentId) {
+					params.in_document_id = query.filter.documentId;
 				}
 				if (query.filter.source) {
 					params.in_source = query.filter.source;
 				}
-				if (query.filter.source_id) {
-					params.in_source_id = query.filter.source_id;
+				if (query.filter.sourceId) {
+					params.in_source_id = query.filter.sourceId;
 				}
 				if (query.filter.author) {
 					params.in_author = query.filter.author;
 				}
-				if (query.filter.start_date) {
-					params.in_start_date = new Date(Number(query.filter.start_date)).toISOString();
+				if (query.filter.startDate) {
+					params.in_start_date = new Date(Number(query.filter.startDate)).toISOString();
 				}
-				if (query.filter.end_date) {
-					params.in_end_date = new Date(Number(query.filter.end_date)).toISOString();
+				if (query.filter.endDate) {
+					params.in_end_date = new Date(Number(query.filter.endDate)).toISOString();
 				}
 			}
 
@@ -151,9 +187,9 @@ export class MergedDataStore {
 				chunk.id = row.id;
 				chunk.text = row.content;
 				chunk.metadata = new DocumentChunkMetadata({
-					created_at: row.created_at,
+					createdAt: row.createdAt,
 					source: row.source,
-					source_id: row.source_id
+					sourceId: row.source_id
 				}, row.document_id);
 				chunk.score = row.score;
 				return chunk;
