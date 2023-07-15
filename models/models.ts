@@ -4,23 +4,23 @@ enum Source {
 
 class DocumentMetadata {
 	source?: Source;
-	source_id?: string;
+	sourceId?: string;
 	url?: string;
-	created_at?: string;
+	createdAt?: string;
 	author?: string;
 
-	constructor(data?: { created_at: string; source: string; source_id: string }) {
+	constructor(data?: { createdAt: string; source: string; sourceId: string; author?: string }) {
 		Object.assign(this, data);
 	}
 
 }
 
 class DocumentChunkMetadata extends DocumentMetadata {
-	document_id?: string;
+	documentId?: string;
 
-	constructor(data: { created_at: string; source: string; source_id: string }, document_id: string) {
+	constructor(data: { createdAt: string; source: string; sourceId: string }, documentId: string) {
 		super(data);
-		this.document_id = document_id;
+		this.documentId = documentId;
 	}
 }
 
@@ -54,12 +54,12 @@ class DocumentWithChunks extends Document {
 }
 
 class DocumentMetadataFilter {
-	document_id?: string;
+	documentId?: string;
 	source?: Source;
-	source_id?: string;
+	sourceId?: string;
 	author?: string;
-	start_date?: string;  // any date string format
-	end_date?: string;  // any date string format
+	startDate?: string;  // any date string format
+	endDate?: string;  // any date string format
 
 	constructor(data?: Partial<DocumentMetadataFilter>) {
 		Object.assign(this, data);
@@ -69,7 +69,7 @@ class DocumentMetadataFilter {
 class Query {
 	query: string;
 	filter?: DocumentMetadataFilter;
-	top_k?: number;
+	topK?: number;
 }
 
 class QueryWithEmbedding extends Query {
@@ -80,7 +80,7 @@ class QueryResult {
 	query: string;
 	results: DocumentChunkWithScore[];
 
-	constructor(data: {query: string, results: DocumentChunkWithScore[]}) {
+	constructor(data: { query: string, results: DocumentChunkWithScore[] }) {
 		Object.assign(this, data);
 	}
 }
