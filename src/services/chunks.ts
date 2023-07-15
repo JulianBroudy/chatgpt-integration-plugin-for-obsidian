@@ -1,5 +1,5 @@
 import {OpenAI} from './openai';
-import {Document, DocumentChunk} from '../models/Models';
+import {Document, DocumentChunk} from '../models/models';
 import {v4} from 'uuid';
 import {Tiktoken, getEncoding} from "js-tiktoken";
 import {ChatGPTEnablerSettings} from "../interfaces/ISettings";

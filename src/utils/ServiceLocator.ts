@@ -1,4 +1,4 @@
-import IUpdatableClient from "interfaces/IUpdatableClient";
+import IUpdatableClient from "src/interfaces/IUpdatableClient";
 
 export default class ServiceLocator {
 	private static instance: ServiceLocator;

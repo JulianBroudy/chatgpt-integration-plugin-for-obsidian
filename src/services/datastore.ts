@@ -6,10 +6,10 @@ import {
 	DocumentMetadataFilter,
 	QueryResult,
 	QueryWithEmbedding
-} from "../models/Models";
+} from "../models/models";
 import {Chunks} from './chunks';
-import LOGGER from 'utils/Logger';
-import {ChatGPTEnablerSettings} from 'interfaces/ISettings';
+import LOGGER from 'src/utils/Logger';
+import {ChatGPTEnablerSettings} from 'src/interfaces/ISettings';
 import IUpdatableClient from "../interfaces/IUpdatableClient";
 import {Notice} from "obsidian";
 

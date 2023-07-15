@@ -1,16 +1,14 @@
 import {App, Editor, MarkdownView, Modal, Notice, Plugin, TFile} from 'obsidian';
 import * as dotenv from 'dotenv';
 import * as process from 'process';
-import LOGGER from 'utils/Logger';
+import LOGGER from './utils/Logger';
 import {MergedDataStore} from './services/datastore';
-import {ChatGPTEnablerSettings} from 'interfaces/ISettings';
-import {ChatGPTEnablerSettingsTab} from 'api/SettingsTab';
-import {Document, DocumentMetadata} from './models/Models';
+import {ChatGPTEnablerSettings} from 'src/interfaces/ISettings';
+import {ChatGPTEnablerSettingsTab} from 'src/api/SettingsTab';
+import {Document, DocumentMetadata} from './models/models';
 import ServiceLocator from "./utils/ServiceLocator";
 import {OpenAI} from "./services/openai";
 import {Chunks} from "./services/chunks";
-import {forEach} from "builtin-modules";
-
 
 dotenv.config({path: 'X:\\Development\\Projects\\Testing Obsidian Plugins\\.obsidian\\plugins\\obsidian-chatgpt-enabler-plugin\\.env'});
 

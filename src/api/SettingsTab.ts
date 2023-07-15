@@ -1,6 +1,6 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import ChatGPTEnablerPlugin from "main";
-import {SensitiveConfiguration} from "interfaces/ISettings";
+import ChatGPTEnablerPlugin from "src/main";
+import {SensitiveConfiguration} from "src/interfaces/ISettings";
 import {forEach} from "builtin-modules";
 import ServiceLocator from "../utils/ServiceLocator";
 import IUpdatableClient from "../interfaces/IUpdatableClient";

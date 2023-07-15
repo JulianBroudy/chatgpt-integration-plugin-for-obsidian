@@ -1,7 +1,7 @@
-import {ChatGPTEnablerSettings} from 'interfaces/ISettings';
+import {ChatGPTEnablerSettings} from 'src/interfaces/ISettings';
 import {Configuration, OpenAIApi} from 'openai';
 import {BackOffPolicy, Retryable} from 'typescript-retry-decorator';
-import LOGGER from 'utils/Logger';
+import LOGGER from 'src/utils/Logger';
 import IUpdatableClient from "../interfaces/IUpdatableClient";
 import {Notice} from "obsidian";
 
