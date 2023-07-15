@@ -1,8 +1,11 @@
-/*
+.save-button-div {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 40px;
+	margin-top: 10px;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+.save-button-div button {
+	width: 100%; /* Adjust this value to your liking */
+	font-weight: bold;
+}
