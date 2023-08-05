@@ -136,18 +136,22 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		});
 
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const ribbonIconEl3 = this.addRibbonIcon('activate', 'Toggle Polling Service', (evt: MouseEvent) => {
+		const ribbonIconEl3 = this.addRibbonIcon('refresh-ccw', 'Toggle Polling Service', (evt: MouseEvent) => {
 			databasePollingService.toggle();
 		});
 
-		//		this.listAllFiles();
+				// this.listAllFiles();
+
+		databasePollingService.activate();
 
 		// dataStoreService.pollCommand();
 	}
 
 
-	onunload() {
 
+	onunload() {
+		const pollingService: DatabasePolling = this.serviceLocator.getService(ServiceLocator.DATABASE_POLLING_SERVICE);
+		pollingService.deactivate();
 	}
 
 	async loadSettings() {
