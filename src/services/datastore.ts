@@ -1,5 +1,7 @@
 import {createClient, SupabaseClient} from '@supabase/supabase-js'
 import {
+	CommandStatus,
+	CommandWithContent,
 	Document,
 	DocumentChunkMetadata,
 	DocumentChunkWithScore,
@@ -14,7 +16,7 @@ import IUpdatableClient from "../interfaces/IUpdatableClient";
 import {Notice} from "obsidian";
 
 
-export class MergedDataStore implements IUpdatableClient {
+export class DataStore implements IUpdatableClient {
 	private client: SupabaseClient;
 	private chunks: Chunks;
 	private settings: ChatGPTEnablerSettings;
@@ -95,15 +97,6 @@ export class MergedDataStore implements IUpdatableClient {
 		}
 
 		return Object.keys(chunks);
-	}
-
-	private async _upsert(table: string, chunks: any[]): Promise<void> {
-		for (const chunk of chunks) {
-			if (chunk.createdAt) {
-				chunk.createdAt = chunk.createdAt[0].toISOString();
-			}
-			await this.client.from(table).upsert(chunk);
-		}
 	}
 
 	async rpc(functionName: string, params: { [key: string]: any }): Promise<any> {
@@ -202,6 +195,47 @@ export class MergedDataStore implements IUpdatableClient {
 		}
 
 		return queryResults;
+	}
+
+	// Function to poll command from database
+	async pollCommand(): Promise<CommandWithContent | null> {
+		const {
+			data,
+			error
+		} = await this.client.from('commands').select('*').eq('status', CommandStatus.NEW).order("created_at", {ascending: true}).limit(1);
+		if (error) {
+			LOGGER.error(error);
+			throw error;
+		}
+
+		if (data.length === 0) {
+			LOGGER.debug("No new commands found.");
+			return null;
+		}
+
+		LOGGER.info("Got data from database [{}]", data[0]);
+		const commandWithContent: CommandWithContent = new CommandWithContent(data[0]);
+		LOGGER.info("Found new command [{}]", commandWithContent);
+
+		this.updateCommandStatus(commandWithContent.id!, CommandStatus.PROCESSING);
+
+		return commandWithContent;
+	}
+
+	// Function to update command status by id
+	async updateCommandStatus(id: string, status: CommandStatus): Promise<void> {
+		await this.client.from('commands').update({
+			status: status
+		}).eq('id', id);
+	}
+
+	private async _upsert(table: string, chunks: any[]): Promise<void> {
+		for (const chunk of chunks) {
+			if (chunk.createdAt) {
+				chunk.createdAt = chunk.createdAt[0].toISOString();
+			}
+			await this.client.from(table).upsert(chunk);
+		}
 	}
 
 }
