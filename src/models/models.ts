@@ -1,5 +1,5 @@
 enum Source {
-	email = "email", file = "file", chat = "chat"
+	EMAIL = "EMAIL", FILE = "FILE", CHAT = "CHAT"
 }
 
 class DocumentMetadata {
@@ -85,6 +85,52 @@ class QueryResult {
 	}
 }
 
+enum CommandStatus {
+	NEW = "NEW",
+	PROCESSING = "PROCESSING",
+	COMPLETED = "COMPLETED",
+	ABANDONED = "ABANDONED",
+	ERROR = "ERROR"
+}
+
+enum CommandType {
+	CREATE_NOTE = "CREATE_NOTE",
+	MODIFY_NOTE = "MODIFY_NOTE",
+	DELETE_NOTE = "DELETE_NOTE"
+}
+
+class CommandContent {
+	text: string;
+	metadata: DocumentMetadata
+
+	constructor(data: { text: string, metadata: DocumentMetadata }) {
+		Object.assign(this, data);
+	}
+}
+
+class Command {
+	id?: string;
+	status: CommandStatus = CommandStatus.NEW;
+	errors?: string;
+	created_at?: string;
+	updated_at?: string;
+
+	constructor(data?: { id: string; status: CommandStatus; errors?: string; created_at?: string; updated_at?: string }) {
+		Object.assign(this, data);
+	}
+
+}
+
+class CommandWithContent extends Command {
+	type: CommandType;
+	content: CommandContent;
+
+	constructor(data: { type: CommandType; content: CommandContent; id: string; status: CommandStatus; errors?: string; created_at?: string; updated_at?: string }) {
+		super(data);
+		Object.assign(this, data);
+	}
+}
+
 export {
 	Source,
 	DocumentMetadata,
@@ -96,6 +142,11 @@ export {
 	DocumentMetadataFilter,
 	Query,
 	QueryWithEmbedding,
-	QueryResult
+	QueryResult,
+	CommandStatus,
+	CommandType,
+	CommandContent,
+	Command,
+	CommandWithContent
 };
 

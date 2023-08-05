@@ -1,12 +1,12 @@
 import IUpdatableClient from "src/interfaces/IUpdatableClient";
 
 export default class ServiceLocator {
-	private static instance: ServiceLocator;
-	private services: Map<string, any>;
-
 	public static OPEN_AI_SERVICE = 'openAiService';
 	public static DATASTORE_SERVICE = 'datastoreService';
 	public static CHUNKIFYING_SERVICE = 'chunkifyingService';
+	static DATABASE_POLLING_SERVICE = 'databasePollingService';
+	private static instance: ServiceLocator;
+	private services: Map<string, any>;
 
 	private constructor() {
 		this.services = new Map();

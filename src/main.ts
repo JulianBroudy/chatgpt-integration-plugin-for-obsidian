@@ -2,13 +2,14 @@ import {App, Editor, MarkdownView, Modal, Notice, Plugin, TFile} from 'obsidian'
 import * as dotenv from 'dotenv';
 import * as process from 'process';
 import LOGGER from './utils/Logger';
-import {MergedDataStore} from './services/datastore';
+import {DataStore} from './services/datastore';
 import {ChatGPTEnablerSettings} from 'src/interfaces/ISettings';
 import {ChatGPTEnablerSettingsTab} from 'src/api/SettingsTab';
 import {Document, DocumentMetadata} from './models/models';
 import ServiceLocator from "./utils/ServiceLocator";
 import {OpenAI} from "./services/openai";
 import {Chunks} from "./services/chunks";
+import {DatabasePolling} from "./services/DatabasePolling";
 
 dotenv.config({path: 'X:\\Development\\Projects\\Testing Obsidian Plugins\\.obsidian\\plugins\\obsidian-chatgpt-enabler-plugin\\.env'});
 
@@ -50,9 +51,10 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		this.serviceLocator.registerService(ServiceLocator.OPEN_AI_SERVICE, openAiService);
 		const chunkifyingService = new Chunks(this.settings, openAiService);
 		this.serviceLocator.registerService(ServiceLocator.CHUNKIFYING_SERVICE, chunkifyingService);
-		const dataStoreService = new MergedDataStore(this.settings, chunkifyingService);
+		const dataStoreService = new DataStore(this.settings, chunkifyingService);
 		this.serviceLocator.registerService(ServiceLocator.DATASTORE_SERVICE, dataStoreService);
-
+		const databasePollingService = new DatabasePolling(dataStoreService, 5);
+		this.serviceLocator.registerService(ServiceLocator.DATABASE_POLLING_SERVICE, databasePollingService);
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
@@ -133,7 +135,14 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 			this.convertFilesToDocuments();
 		});
 
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const ribbonIconEl3 = this.addRibbonIcon('activate', 'Toggle Polling Service', (evt: MouseEvent) => {
+			databasePollingService.toggle();
+		});
+
 		//		this.listAllFiles();
+
+		// dataStoreService.pollCommand();
 	}
 
 
