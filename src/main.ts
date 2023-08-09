@@ -10,26 +10,20 @@ import ServiceLocator from "./utils/ServiceLocator";
 import {OpenAI} from "./services/openai";
 import {Chunks} from "./services/chunks";
 import {DatabasePolling} from "./services/DatabasePolling";
+import {UIController} from "./services/UIController";
 
 dotenv.config({path: 'X:\\Development\\Projects\\Testing Obsidian Plugins\\.obsidian\\plugins\\obsidian-chatgpt-enabler-plugin\\.env'});
 
 const DEFAULT_SUPABASE_URL = 'http://localhost:54321';
 const DEFAULT_SETTINGS: Partial<ChatGPTEnablerSettings> = {
 	openAIApiKey: {
-		value: process.env.OPENAI_API_KEY || '',
-		isVisible: false
-	},
-	supabaseUrl: process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL,
-	supabaseKeys: {
+		value: process.env.OPENAI_API_KEY || '', isVisible: false
+	}, supabaseUrl: process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL, supabaseKeys: {
 		anonKey: {
-			value: process.env.SUPABASE_ANON_KEY || '',
-			isVisible: false
-		},
-		serviceRoleKey: {
-			value: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-			isVisible: false
-		},
-		currentlyActiveKey: 'serviceRoleKey',
+			value: process.env.SUPABASE_ANON_KEY || '', isVisible: false
+		}, serviceRoleKey: {
+			value: process.env.SUPABASE_SERVICE_ROLE_KEY || '', isVisible: false
+		}, currentlyActiveKey: 'serviceRoleKey',
 	}
 }
 
@@ -55,6 +49,12 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		this.serviceLocator.registerService(ServiceLocator.DATASTORE_SERVICE, dataStoreService);
 		const databasePollingService = new DatabasePolling(dataStoreService, 5);
 		this.serviceLocator.registerService(ServiceLocator.DATABASE_POLLING_SERVICE, databasePollingService);
+		const uiController = new UIController(this);
+		this.serviceLocator.registerService(ServiceLocator.UI_CONTROLLER, uiController);
+
+		uiController.createSyncingIcons();
+
+
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
@@ -62,9 +62,7 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
+			id: 'open-sample-modal-simple', name: 'Open sample modal (simple)', callback: () => {
 				new SampleModal(this.app).open();
 			}
 		});
@@ -110,17 +108,13 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 
 		LOGGER.silly("onload()");
 		this.addCommand({
-			id: 'list-all-files',
-			name: 'List All Files',
-			callback: () => {
+			id: 'list-all-files', name: 'List All Files', callback: () => {
 				this.listAllFiles();
 			}
 		});
 
 		this.addCommand({
-			id: 'convert-files-to-documents',
-			name: 'Convert Files to Documents',
-			callback: () => {
+			id: 'convert-files-to-documents', name: 'Convert Files to Documents', callback: () => {
 				this.convertFilesToDocuments();
 			}
 		});
@@ -135,18 +129,37 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 			this.convertFilesToDocuments();
 		});
 
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const ribbonIconEl3 = this.addRibbonIcon('refresh-ccw', 'Toggle Polling Service', (evt: MouseEvent) => {
+
+
+
+
+		const pollingButton = this.addStatusBarItem();
+		const iconContainer = pollingButton.createEl('span');
+
+// Set the inner HTML to the Lucide icon's SVG code with adjusted size
+		iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw-off"><path d="M21 8L18.74 5.74A9.75 9.75 0 0 0 12 3C11 3 10.03 3.16 9.13 3.47"/><path d="M8 16H3v5"/><path d="M3 12C3 9.51 4 7.26 5.64 5.64"/><path d="m3 16 2.26 2.26A9.75 9.75 0 0 0 12 21c2.49 0 4.74-1 6.36-2.64"/><path d="M21 12c0 1-.16 1.97-.47 2.87"/><path d="M21 3v5h-5"/><path d="M22 22 2 2"/></svg>`;
+
+		pollingButton.addEventListener('click', () => {
+			// Toggle the polling service
 			databasePollingService.toggle();
+
+			// Toggle the spinning state based on the polling state
+			if (databasePollingService.isActive()) {
+				iconContainer.addClass('spin-animation'); // Start spinning
+			} else {
+				iconContainer.removeClass('spin-animation'); // Stop spinning
+			}
 		});
 
-				// this.listAllFiles();
+		pollingButton.addClass('mod-clickable');
+
+
+		// this.listAllFiles();
 
 		databasePollingService.activate();
 
 		// dataStoreService.pollCommand();
 	}
-
 
 
 	onunload() {
@@ -179,13 +192,8 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 				const content = await this.app.vault.read(file);
 				LOGGER.info("File: " + file.path);
 				const document = new Document({
-					id: file.basename,
-					text: content,
-					metadata: new DocumentMetadata({
-						source: 'file',
-						sourceId: file.path,
-						createdAt: file.stat.mtime.toString(),
-						author: vaultName,
+					id: file.basename, text: content, metadata: new DocumentMetadata({
+						source: 'file', sourceId: file.path, createdAt: file.stat.mtime.toString(), author: vaultName,
 					}),
 				});
 				documents.push(document);

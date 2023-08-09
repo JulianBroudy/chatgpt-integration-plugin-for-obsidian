@@ -6,11 +6,11 @@ import LOGGER from 'src/utils/Logger';
 export class DatabasePolling implements IUpdatableClient {
 	private datastore: DataStore;
 	private pollIntervalSeconds: number;
-	private isActive;
+	private active;
 
 	constructor(datastore: DataStore, pollIntervalSeconds: number) {
 		this.datastore = datastore;
-		this.isActive = false;
+		this.active = false;
 		this.pollIntervalSeconds = pollIntervalSeconds;
 		LOGGER.info('DatabasePoller initialized with poll interval:', pollIntervalSeconds, 'seconds');
 	}
@@ -20,22 +20,26 @@ export class DatabasePolling implements IUpdatableClient {
 	}
 
 	activate() {
-		this.isActive = true;
+		this.active = true;
 		this.startPolling();
 		LOGGER.info('DatabasePoller activated');
 	}
 
 	deactivate() {
-		this.isActive = false;
+		this.active = false;
 		LOGGER.info('DatabasePoller deactivated');
 	}
 
 	toggle() {
-		if (this.isActive) {
+		if (this.active) {
 			this.deactivate();
 		} else {
 			this.activate();
 		}
+	}
+
+	isActive(){
+		return this.active;
 	}
 
 
@@ -46,7 +50,7 @@ export class DatabasePolling implements IUpdatableClient {
 
 	private startPolling() {
 		LOGGER.silly("Entering startPolling...");
-		if (!this.isActive) return;
+		if (!this.active) return;
 
 		LOGGER.debug("Polling datastore for command.");
 		this.datastore.pollCommand().then((command) => {

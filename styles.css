@@ -9,3 +9,29 @@
 	width: 100%; /* Adjust this value to your liking */
 	font-weight: bold;
 }
+
+.spin-animation {
+	animation: spin 10s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+.icon-wrapper {
+	position: relative;
+	max-width: 18px;
+	max-height: 18px;
+}
+
+.icon-text {
+	margin-right: 5px; // You can adjust the value to your preference
+}
+
+.slash {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
