@@ -1,5 +1,4 @@
 import ChatGPTEnablerPlugin from "../main";
-import ServiceLocator from "../utils/ServiceLocator";
 import {DatabasePolling} from "./DatabasePolling";
 
 
@@ -8,13 +7,13 @@ export class UIController {
 	pollingServiceRibbonIconEL: HTMLElement;
 	pollingServiceStatusBarIconEL: HTMLElement;
 	plugin;
-	pollingService: DatabasePolling;
+	databasePollingService: DatabasePolling;
 	private syncingIconSVGElements: SyncingIconSVGElements[] = [];
 
 
-	constructor(plugin: ChatGPTEnablerPlugin) {
+	constructor(plugin: ChatGPTEnablerPlugin, databasePollingService: DatabasePolling) {
 		this.plugin = plugin;
-		this.pollingService = ServiceLocator.getInstance().getService(ServiceLocator.DATABASE_POLLING_SERVICE);
+		this.databasePollingService = databasePollingService;
 	}
 
 	createSyncingIcons() {
@@ -63,8 +62,8 @@ export class UIController {
 	}
 
 	private togglePollingService() {
-		this.pollingService.toggle();
-		this.toggleSyncingIcon(this.pollingService.isActive());
+		this.databasePollingService.toggle();
+		this.toggleSyncingIcon(this.databasePollingService.isActive());
 	}
 
 	private toggleSyncingIcon(activate: boolean) {

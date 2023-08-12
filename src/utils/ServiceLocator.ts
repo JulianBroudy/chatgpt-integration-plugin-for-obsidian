@@ -5,7 +5,8 @@ export default class ServiceLocator {
 	public static DATASTORE_SERVICE = 'datastoreService';
 	public static CHUNKIFYING_SERVICE = 'chunkifyingService';
 	static DATABASE_POLLING_SERVICE = 'databasePollingService';
-	static UI_CONTROLLER: 'uiController';
+	static UI_CONTROLLING_SERVICE: 'uiControllingService';
+	static COMMAND_HANDLING_SERVICE: 'commandHandlingService';
 	private static instance: ServiceLocator;
 	private services: Map<string, any>;
 
