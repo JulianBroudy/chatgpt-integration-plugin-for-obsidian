@@ -1,9 +1,9 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import ChatGPTEnablerPlugin from "src/main";
 import {SensitiveConfiguration} from "src/interfaces/ISettings";
-import {forEach} from "builtin-modules";
 import ServiceLocator from "../utils/ServiceLocator";
 import IUpdatableClient from "../interfaces/IUpdatableClient";
+import {FolderSuggest} from "./FileSuggest";
 
 export class ChatGPTEnablerSettingsTab extends PluginSettingTab {
 	private plugin: ChatGPTEnablerPlugin;
@@ -15,7 +15,6 @@ export class ChatGPTEnablerSettingsTab extends PluginSettingTab {
 
 	display(): void {
 		const {containerEl} = this;
-
 		containerEl.empty();
 
 //		containerEl.createEl('h1', {text: 'ChatGPT Enabler Settings'});
@@ -61,6 +60,23 @@ export class ChatGPTEnablerSettingsTab extends PluginSettingTab {
 			await this.updateServices(ServiceLocator.DATASTORE_SERVICE);
 			// TODO add error handling
 		});
+
+		new Setting(containerEl)
+			.setName('New Notes\' Location')
+			.setDesc('When ChatGPT fails to specify a location for a new note.')
+			.addSearch(search =>{
+				new FolderSuggest(search.inputEl);
+				search.setPlaceholder("Example: Folder 1/Folder 2")
+					.setValue(this.plugin.settings.newMarkdownFileFolderLocation)
+					.onChange(async (newFolder) => {
+						this.plugin.settings.newMarkdownFileFolderLocation = newFolder;
+						await this.plugin.saveSettings();
+					});
+				// @ts-ignore
+				search.containerEl.addClass("search");
+			})
+
+
 	}
 
 	addSensitiveConfigField(setting: Setting, name: string, desc: string, config: SensitiveConfiguration) {

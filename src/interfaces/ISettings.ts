@@ -11,4 +11,5 @@ export interface ChatGPTEnablerSettings {
 		serviceRoleKey: SensitiveConfiguration;
 		currentlyActiveKey: 'anonKey' | 'serviceRoleKey';
 	};
+	newMarkdownFileFolderLocation: string;
 }
