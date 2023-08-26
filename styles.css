@@ -66,17 +66,37 @@
 	height: 30%;
 }
 
-/* Common styles for change items */
-.change-item {
-	padding: 8px;
-	margin: 4px 0;
-	cursor: grab;
-	border-bottom: 1px solid #eee;
+.folder-line, .file-item {
+	display: flex;
+	align-items: center;
+	min-height: 24px;
 }
 
-/* Dragging effect */
-.change-item:active {
-	cursor: grabbing;
+.folder-line div, .line-section {
+	width: 21px;
+	height: 21px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.arrow-container div {
+	width: 16px; /* Or your desired dimensions */
+	height: 16px; /* Or your desired dimensions */
+	margin: 0;
+}
+
+.folder-file-count {
+	margin-left: 6px;
+	color: rgba(110, 114, 108, 1);
+}
+
+.no-margin {
+	margin: 0 !important;
+}
+
+.item-text {
+	margin-left: 3px;
 }
 
 .added {
