@@ -18,7 +18,7 @@ class DocumentMetadata {
 class DocumentChunkMetadata extends DocumentMetadata {
 	documentId?: string;
 
-	constructor(data: { createdAt: string; source: string; sourceId: string }, documentId: string) {
+	constructor(data: { createdAt: string; source: string; sourceId: string, author?: string }, documentId: string) {
 		super(data);
 		this.documentId = documentId;
 	}
@@ -115,7 +115,13 @@ class Command {
 	created_at?: string;
 	updated_at?: string;
 
-	constructor(data?: { id: string; status: CommandStatus; errors?: string; created_at?: string; updated_at?: string }) {
+	constructor(data?: {
+		id: string;
+		status: CommandStatus;
+		errors?: string;
+		created_at?: string;
+		updated_at?: string
+	}) {
 		Object.assign(this, data);
 	}
 
@@ -125,11 +131,20 @@ class CommandWithContent extends Command {
 	type: CommandType;
 	content: CommandContent;
 
-	constructor(data: { type: CommandType; content: CommandContent; id: string; status: CommandStatus; errors?: string; created_at?: string; updated_at?: string }) {
+	constructor(data: {
+		type: CommandType;
+		content: CommandContent;
+		id: string;
+		status: CommandStatus;
+		errors?: string;
+		created_at?: string;
+		updated_at?: string
+	}) {
 		super(data);
 		Object.assign(this, data);
 	}
 }
+
 
 export {
 	Source,

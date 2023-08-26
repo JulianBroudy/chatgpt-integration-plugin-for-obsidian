@@ -11,6 +11,9 @@ import {OpenAI} from "./services/openai";
 import {Chunks} from "./services/chunks";
 import {DatabasePolling} from "./services/DatabasePolling";
 import {UIController} from "./services/UIController";
+import {CommandHandler} from "./services/CommandHandler";
+import {COMMIT_VIEW_TYPE, CommitView} from "./api/CommitView";
+import {StagingArea} from "./api/StaginArea";
 
 dotenv.config({path: 'X:\\Development\\Projects\\Testing Obsidian Plugins\\.obsidian\\plugins\\obsidian-chatgpt-enabler-plugin\\.env'});
 
@@ -47,13 +50,14 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		this.serviceLocator.registerService(ServiceLocator.CHUNKIFYING_SERVICE, chunkifyingService);
 		const dataStoreService = new DataStore(this.settings, chunkifyingService);
 		this.serviceLocator.registerService(ServiceLocator.DATASTORE_SERVICE, dataStoreService);
-		const databasePollingService = new DatabasePolling(dataStoreService, 5);
+		const commandHandlingService = new CommandHandler(this.settings, dataStoreService);
+		this.serviceLocator.registerService(ServiceLocator.COMMAND_HANDLING_SERVICE, commandHandlingService);
+		const databasePollingService = new DatabasePolling(dataStoreService, commandHandlingService, 5);
 		this.serviceLocator.registerService(ServiceLocator.DATABASE_POLLING_SERVICE, databasePollingService);
-		const uiController = new UIController(this);
-		this.serviceLocator.registerService(ServiceLocator.UI_CONTROLLER, uiController);
+		const uiController = new UIController(this, databasePollingService);
+		this.serviceLocator.registerService(ServiceLocator.UI_CONTROLLING_SERVICE, uiController);
 
 		uiController.createSyncingIcons();
-
 
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
@@ -130,9 +134,6 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		});
 
 
-
-
-
 		const pollingButton = this.addStatusBarItem();
 		const iconContainer = pollingButton.createEl('span');
 
@@ -156,10 +157,74 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 
 		// this.listAllFiles();
 
-		databasePollingService.activate();
+		// databasePollingService.activate();
 
 		// dataStoreService.pollCommand();
+
+
+		// const newLeaf = app.workspace.createLeafInParent(app.workspace.rightSplit,0);
+		this.registerView(
+			COMMIT_VIEW_TYPE,
+			(leaf) => new CommitView(leaf, new StagingArea(dataStoreService))
+			// (leaf) => new SyncView(leaf, dataStoreService)
+		);
+		this.addRibbonIcon("dice", "Activate view", () => {
+			this.activateView();
+		});
+
+		// app.vault.on()
+
+		// console.log(app.vault.getFiles());
+		// console.log("\n");
+		// console.log(app.vault.getAllLoadedFiles());
+		// console.log("\n");
+		// console.log(app.vault.adapter.list('/'));
+		// console.log("\n");
+		// console.log(app.vault.adapter.list('/Obsidian Plugin For ChatGPT'))
+		// app.vault.
+
+			/*const root: TFolder = app.vault.getRoot();
+
+// Define the callback function
+		const callback = (file: TAbstractFile) => {
+			// Do something with each file, such as printing its name
+			if(file instanceof TFolder)
+			console.log(file.name+'\t'+file.path);
+				// console.log(app.vault.adapter.list(file.path));
+
+		};
+
+// Call the static method
+		Vault.recurseChildren(root, callback);*/
+
+
+		// this.addRibbonIcon("dice", "Print leaf types", () => {
+		// 	console.log("iterateRootLeaves:\n");
+		// 	this.app.workspace.iterateRootLeaves((leaf) => {
+		// 		console.log(leaf.getRoot()+'\t'+ leaf.getViewState().group+ '\t' +leaf.getViewState().type);
+		//
+		// 	});
+		// 	console.log("iterateAllLeaves:\n");
+		// 	this.app.workspace.iterateAllLeaves((leaf) => {
+		// 		console.log(leaf.getRoot()+'\t'+ leaf.getViewState().group+ '\t' +leaf.getViewState().type);
+		// 	});
+		// });
+
 	}
+
+	async activateView() {
+		this.app.workspace.detachLeavesOfType(COMMIT_VIEW_TYPE);
+
+		await this.app.workspace.getRightLeaf(false).setViewState({
+			type: COMMIT_VIEW_TYPE,
+			active: true,
+		});
+
+		this.app.workspace.revealLeaf(
+			this.app.workspace.getLeavesOfType(COMMIT_VIEW_TYPE)[0]
+		);
+	}
+
 
 
 	onunload() {

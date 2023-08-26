@@ -7,7 +7,7 @@
 
 .save-button-div button {
 	width: 100%; /* Adjust this value to your liking */
-	font-weight: bold;
+	/*font-weight: bold;*/
 }
 
 .spin-animation {
@@ -15,8 +15,12 @@
 }
 
 @keyframes spin {
-	0% { transform: rotate(0deg); }
-	100% { transform: rotate(360deg); }
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
 }
 
 .icon-wrapper {
@@ -26,7 +30,8 @@
 }
 
 .icon-text {
-	margin-right: 5px; // You can adjust the value to your preference
+	margin-right: 5px;
+/ / You can adjust the value to your preference
 }
 
 .slash {
@@ -35,6 +40,53 @@
 	left: 0;
 }
 
-.search{
+.search {
 	width: calc(100% - 20px);
+}
+
+/* Common styles for both containers */
+.resizable {
+	resize: vertical;
+	overflow: auto;
+	border: 1px solid #ccc;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+	padding: 16px;
+	margin-bottom: 16px;
+	height: 300px; /* Default height */
+}
+
+/* Staged changes container */
+.staged-changes {
+	height: 30%;
+}
+
+/* Unstaged changes container */
+.unstaged-changes {
+	height: 30%;
+}
+
+/* Common styles for change items */
+.change-item {
+	padding: 8px;
+	margin: 4px 0;
+	cursor: grab;
+	border-bottom: 1px solid #eee;
+}
+
+/* Dragging effect */
+.change-item:active {
+	cursor: grabbing;
+}
+
+.added {
+	color: rgba(97, 140, 68, 1);
+}
+
+.modified {
+	color: rgba(103, 150, 182, 1);
+}
+
+.deleted {
+	color: rgba(208, 97, 72, 1);
 }

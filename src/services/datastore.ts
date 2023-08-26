@@ -81,18 +81,22 @@ export class DataStore implements IUpdatableClient {
 					"id": chunk.id,
 					"content": chunk.text,
 					"embedding": chunk.embedding,
-					"documentId": documentId,
+					"document_id": documentId,
 					"source": chunk.metadata.source,
-					"sourceId": chunk.metadata.sourceId,
+					"source_id": chunk.metadata.sourceId,
 					"url": chunk.metadata.url,
 					"author": chunk.metadata.author
 				};
 				if (chunk.metadata.createdAt) {
 					console.log('chunk.metadata.createdAt:', chunk.metadata.createdAt);
-					json["createdAt"] = new Date(Number(chunk.metadata.createdAt)).toISOString();
+					json["created_at"] = new Date(Number(chunk.metadata.createdAt)).toISOString();
 				}
 				LOGGER.debug("Upserting [{}]", json);
-				await this.client.from(table).upsert(json);
+				try {
+					await this.client.from(table).upsert(json);
+				} catch (e) {
+					LOGGER.error(e);
+				}
 			}
 		}
 
@@ -229,6 +233,30 @@ export class DataStore implements IUpdatableClient {
 		}).eq('id', id);
 	}
 
+	async getSyncedDocuments(): Promise<DocumentChunkMetadata[]> {
+		const {
+			data,
+			error
+		} = await this.client.from('unique_documents_metadata').select().order('created_at',{ascending:false});
+
+		if (error) {
+			LOGGER.error(error);
+			throw error;
+		}
+
+		LOGGER.info("Got data from database [{}]", data[0]);
+		const documentsMetadata: DocumentChunkMetadata[] = [];
+		data.forEach(result => {
+			documentsMetadata.push(new DocumentChunkMetadata({
+				sourceId: result.source_id,
+				source: result.source,
+				createdAt: result.created_at
+			}, result.document_id));
+		})
+		LOGGER.info("Found synced files [{}]", documentsMetadata);
+		return documentsMetadata;
+	}
+
 	private async _upsert(table: string, chunks: any[]): Promise<void> {
 		for (const chunk of chunks) {
 			if (chunk.createdAt) {
@@ -237,5 +265,4 @@ export class DataStore implements IUpdatableClient {
 			await this.client.from(table).upsert(chunk);
 		}
 	}
-
 }
