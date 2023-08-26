@@ -1,4 +1,4 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, TFile} from 'obsidian';
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, TAbstractFile, TFile, TFolder} from 'obsidian';
 import * as dotenv from 'dotenv';
 import * as process from 'process';
 import LOGGER from './utils/Logger';
@@ -154,7 +154,7 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 
 		pollingButton.addClass('mod-clickable');
 
-
+		// this.listAllFiles();
 		// this.listAllFiles();
 
 		// databasePollingService.activate();
@@ -241,12 +241,24 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 	}
 
 	async listAllFiles() {
-		let log = '';
-		this.app.vault.getFiles().forEach((file: TFile) => {
-			log += file.path + '\n';
-		});
+		const root = this.app.vault.getRoot();
+		const log = this.listFilesInFolder(root, "", 0);
 		await this.writeLog(log);
 	}
+
+	private listFilesInFolder(folder: TFolder, log: string, level: number): string {
+		folder.children.forEach((child: TAbstractFile) => {
+			if (child instanceof TFolder) {
+				log += '- '.repeat(level) + `[Folder] ${child.name}\n`;
+				log = this.listFilesInFolder(child, log, level + 1);
+			} else if (child instanceof TFile) {
+				log += '- '.repeat(level) + `[File] ${child.name}\n`;
+			}
+		});
+		return log;
+	}
+
+
 
 	async convertFilesToDocuments() {
 		let log = '';
