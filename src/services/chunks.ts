@@ -103,8 +103,9 @@ export class Chunks {
 		}
 
 		const docId = doc.id || v4();
+		const sourceId = doc.metadata?.sourceId? doc.metadata.sourceId : 'unknown';
 		const textChunks = this.getTextChunks(doc.text, chunkTokenSize);
-		const metadata = doc.metadata ? {...doc.metadata, documentId: docId} : {documentId: docId};
+		const metadata = doc.metadata ? {...doc.metadata, documentId: docId} : {sourceId: sourceId, documentId: docId};
 		const docChunks = textChunks.map((text_chunk, i) => {
 			const chunkId = `${docId}_${i}`;
 			return new DocumentChunk({id: chunkId, text: text_chunk, metadata: metadata});
