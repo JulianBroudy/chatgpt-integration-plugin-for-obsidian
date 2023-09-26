@@ -44,9 +44,39 @@
 	width: calc(100% - 20px);
 }
 
-/* Common styles for both containers */
-.resizable {
-	resize: vertical;
+
+/* Sync View Components*/
+
+/*.sync-ribbon-refresh,
+.sync-ribbon-expand-all,
+.sync-ribbon-collapse-all {
+	display: inline-block;
+	padding: 10px;
+	margin: 5px;
+	border: 2px solid #ddd;
+	border-radius: 5px;
+	cursor: pointer;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+.sync-ribbon-refresh:hover,
+.sync-ribbon-expand-all:hover,
+.sync-ribbon-collapse-all:hover {
+	background-color: #f0f0f0;
+	border-color: #ccc;
+}*/
+
+.sync-ribbon{
+	display: inline-flex;
+	padding: 15px 0 15px 0;
+}
+.sync-ribbon button{
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+.changes-root {
+	resize: both;
 	overflow: auto;
 	border: 1px solid #ccc;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -56,47 +86,21 @@
 	height: 300px; /* Default height */
 }
 
-/* Staged changes container */
-.staged-changes {
-	height: 30%;
+.changes-element{
+	padding-left: 0;
 }
 
-/* Unstaged changes container */
-.unstaged-changes {
-	height: 30%;
-}
-
-.folder-line, .file-item {
+.change-element-div {
 	display: flex;
-	align-items: center;
 	min-height: 24px;
 }
 
-.folder-line div, .line-section {
-	width: 21px;
-	height: 21px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+.change-element-arrow{
+	margin-right:6px;
 }
 
-.arrow-container div {
-	width: 16px; /* Or your desired dimensions */
-	height: 16px; /* Or your desired dimensions */
-	margin: 0;
-}
-
-.folder-file-count {
-	margin-left: 6px;
-	color: rgba(110, 114, 108, 1);
-}
-
-.no-margin {
-	margin: 0 !important;
-}
-
-.item-text {
-	margin-left: 3px;
+.change-element-icon-span{
+	margin-right: 6px;
 }
 
 .added {
