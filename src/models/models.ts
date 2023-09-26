@@ -4,12 +4,12 @@ enum Source {
 
 class DocumentMetadata {
 	source?: Source;
-	sourceId?: string;
+	sourceId: string | 'unknown' = 'unknown';
 	url?: string;
 	createdAt?: string;
 	author?: string;
 
-	constructor(data?: { createdAt: string; source: string; sourceId: string; author?: string }) {
+	constructor(data?: { createdAt: string; source: string; sourceId: string; url?: string, author?: string }) {
 		Object.assign(this, data);
 	}
 
@@ -144,7 +144,6 @@ class CommandWithContent extends Command {
 		Object.assign(this, data);
 	}
 }
-
 
 export {
 	Source,
