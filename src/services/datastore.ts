@@ -5,6 +5,7 @@ import {
 	Document,
 	DocumentChunkMetadata,
 	DocumentChunkWithScore,
+	DocumentMetadata,
 	DocumentMetadataFilter,
 	QueryResult,
 	QueryWithEmbedding
@@ -61,14 +62,13 @@ export class DataStore implements IUpdatableClient {
 		this.lastConnectionConfigurations['url'] = this.settings.supabaseUrl;
 	}
 
-
-	async upsert(table: string, documents: Document[], chunkTokenSize?: number): Promise<string[]> {
+	async upsert(documents: Document[], tableName = 'documents', chunkTokenSize?: number): Promise<string[]> {
 		LOGGER.debug("Deleting existing documents...");
 		// Delete any existing vectors for documents with the input document ids
 		await Promise.all(
 			documents
 				.filter(document => document.id)
-				.map(document => this.deleteByFilters(table, {documentId: document.id}))
+				.map(document => this.deleteByFilters(tableName, {documentId: document.id}))
 		);
 
 		const chunks = await this.chunks.getDocumentChunks(documents, chunkTokenSize);
@@ -93,7 +93,7 @@ export class DataStore implements IUpdatableClient {
 				}
 				LOGGER.debug("Upserting [{}]", json);
 				try {
-					await this.client.from(table).upsert(json);
+					await this.client.from(tableName).upsert(json);
 				} catch (e) {
 					LOGGER.error(e);
 				}
@@ -233,11 +233,11 @@ export class DataStore implements IUpdatableClient {
 		}).eq('id', id);
 	}
 
-	async getSyncedDocuments(): Promise<DocumentChunkMetadata[]> {
+	async getSyncedDocuments(): Promise<DocumentMetadata[]> {
 		const {
 			data,
 			error
-		} = await this.client.from('unique_documents_metadata').select().order('created_at',{ascending:false});
+		} = await this.client.from('unique_documents_metadata').select().order('created_at', {ascending: false});
 
 		if (error) {
 			LOGGER.error(error);
@@ -245,13 +245,14 @@ export class DataStore implements IUpdatableClient {
 		}
 
 		LOGGER.info("Got data from database [{}]", data[0]);
-		const documentsMetadata: DocumentChunkMetadata[] = [];
+		const documentsMetadata: DocumentMetadata[] = [];
 		data.forEach(result => {
-			documentsMetadata.push(new DocumentChunkMetadata({
+			documentsMetadata.push(new DocumentMetadata({
 				sourceId: result.source_id,
 				source: result.source,
+				url: result.url,
 				createdAt: result.created_at
-			}, result.document_id));
+			}));
 		})
 		LOGGER.info("Found synced files [{}]", documentsMetadata);
 		return documentsMetadata;
