@@ -10,6 +10,7 @@ import LOGGER from "../utils/Logger";
 
 export const VIEW_TYPE_SYNC_VIEW = "sync-view";
 
+
 export class SyncView extends ItemView {
 	private fileStateTree: FileStateTree;
 	private fileUIState: FileUIState;
@@ -50,7 +51,8 @@ export class SyncView extends ItemView {
 	}
 
 	private addCommitButton() {
-		const commitButton = this.contentEl.createEl('button', {text: 'Commit/Sync'});
+		const commitButtonDiv = this.contentEl.createDiv({cls: 'commit-button-div'});
+		const commitButton = commitButtonDiv.createEl('button', {text: 'Commit/Sync', cls: 'mod-cta'});
 		commitButton.addEventListener('click', async () => {
 			const documentsForUpsert: Document[] = [];
 			const vaultName = this.app.vault.getName();
@@ -72,18 +74,19 @@ export class SyncView extends ItemView {
 				}
 			}
 			const datastoreService: DataStore = ServiceLocator.getInstance().getService(ServiceLocator.DATASTORE_SERVICE);
-			for(const doc of documentsForUpsert) {
+			for (const doc of documentsForUpsert) {
 				LOGGER.info("upserting:" + doc.id);
 			}
 			await datastoreService.upsert(documentsForUpsert);
 			this.fileUIState.clearCheckedFiles();
-			this.refresh();
+			await this.refresh();
 		});
 	}
 
-	private refresh(){
+	private async refresh() {
 		this.isBuilt = false;
-		this.initialize();
+		await this.initialize();
+		this.render();
 	}
 
 	private async initialize() {
@@ -101,27 +104,37 @@ export class SyncView extends ItemView {
 		const refreshButton = syncRibbon.createEl('button', {cls: 'sync-ribbon-refresh'});
 		refreshButton.innerHTML = this.refreshIconSvg;
 		refreshButton.addEventListener('click', async () => {
-			console.log("not implemented yet")
+			await this.refresh();
 		});
 		const expandAllButton = syncRibbon.createEl('button', {cls: 'sync-ribbon-expand-all'});
 		expandAllButton.innerHTML = this.expandAllIconSvg;
 		expandAllButton.addEventListener('click', async () => {
 			this.fileStateTree.getAllFolders().forEach(folder => {
-				console.log("Expanded file: " + folder.abstractFile.path);
+				this.fileUIState.expandFolder(folder.abstractFile.path);
 			})
+			this.render();
 		});
 		const collapseAllButton = syncRibbon.createEl('button', {cls: 'sync-ribbon-collapse-all'});
 		collapseAllButton.innerHTML = this.collapseAllIconSvg;
 		collapseAllButton.addEventListener('click', async () => {
 			this.fileStateTree.getAllFolders().forEach(folder => {
-				console.log("Collapsed file: " + folder.abstractFile.path);
+				this.fileUIState.collapseFolder(folder.abstractFile.path);
 			})
+			this.render();
 		});
-		const renderNode = (node: TreeNode, parentElement: HTMLUListElement, pathSoFar: string[], level: number, isFile = false, isFirstElement = false) => {
+
+		const checkedBoxToggleEvent = new Event('change', {
+			'bubbles': true,
+			'cancelable': true
+		});
+
+		const renderNode = (node: TreeNode, parentElement: HTMLUListElement, pathSoFar: string[], level: number, isFile = false) => {
 			const changeElement = parentElement.createDiv({
-				cls: 'change-element-div',
-				attr: {'change-element-node-identifier': node.abstractFile.path}
+				cls: 'change-element-div'
 			});
+			if (isFile) {
+				level++;
+			}
 			changeElement.style.marginLeft = `${level * this.indentation}px`;
 			let rightArrowSpan: HTMLElement;
 			let downArrowSpan: HTMLElement;
@@ -140,8 +153,8 @@ export class SyncView extends ItemView {
 				attr: {'data-file-path': node.abstractFile.path}
 			});
 			checkBox.addEventListener('change', async () => {
-				console.log("Checkbox clicked for: " + node.abstractFile.path)
-				console.log("Checkbox clicked name: " + node.abstractFile.name)
+				LOGGER.debug("Checkbox clicked for: " + node.abstractFile.path)
+				LOGGER.silly("Checkbox clicked name: " + node.abstractFile.name)
 				const filePath = node.abstractFile.path;
 				if (checkBox.checked) {
 					await this.fileUIState.checkFile(filePath);
@@ -156,29 +169,28 @@ export class SyncView extends ItemView {
 			iconSpan.innerHTML = isFile ? this.fileIconSvg : this.folderIconSvg;
 
 
-			changeElement.createSpan({
+			const textSpan = changeElement.createSpan({
 				text: node.abstractFile.name === '' ? 'Changes' : node.abstractFile.name,
 				cls: 'change-element-text-span'
 			});
 
-			// Create a new UL for the children and append it to the current LI
-			if (!isFile) {
+			if (isFile) {
+				textSpan.addClass(<string>node.fileState?.toLowerCase());
+				LOGGER.silly("File " + node.abstractFile.name + " state is " + node.fileState)
+				if (this.fileUIState.isChecked(node.abstractFile.path)) {
+					checkBox.checked = true;
+					checkBox.dispatchEvent(checkedBoxToggleEvent);
+				}
+			} else {
+				// Create a new UL for the children and append it to the current LI
 				const childrenUl = parentElement.createEl('ul', {cls: 'changes-element'});
 
 				const folderPath = node.abstractFile.path;
-				this.fileUIState.collapseFolder(folderPath);
-				childrenUl.style.display = 'none';
+				this.updateExpandedCollapsedState(folderPath, childrenUl, downArrowSpan!, rightArrowSpan!);
+
 				const toggleNode = () => {
 					this.fileUIState.toggleFolder(folderPath);
-					if (!this.fileUIState.isFolderExpanded(folderPath)) {
-						childrenUl.style.display = 'none';
-						downArrowSpan.style.display = 'none';
-						rightArrowSpan.style.display = 'inline-block';
-					} else {
-						childrenUl.style.display = 'block';
-						downArrowSpan.style.display = 'inline-block';
-						rightArrowSpan.style.display = 'none';
-					}
+					this.updateExpandedCollapsedState(folderPath, childrenUl, downArrowSpan, rightArrowSpan);
 				};
 
 				// @ts-ignore
@@ -194,12 +206,20 @@ export class SyncView extends ItemView {
 		}
 		const rootUl = this.rootContainer.createDiv('changes-root');
 		const changesElement = rootUl.createEl('ul', {cls: 'changes-element'});
-		renderNode(this.fileStateTree.root, changesElement, [], 0, false, true);
+		renderNode(this.fileStateTree.root, changesElement, [], 0, false);
 	}
 
-	private getChangeElementById = (path: string) => {
-		return document.querySelector(`[change-element-node-identifier="${path}"]`) as HTMLDivElement;
-	};
+	private updateExpandedCollapsedState(folderPath: string, childrenUl: any, downArrowSpan: HTMLElement, rightArrowSpan: HTMLElement) {
+		if (!this.fileUIState.isFolderExpanded(folderPath)) {
+			childrenUl.style.display = 'none';
+			downArrowSpan.style.display = 'none';
+			rightArrowSpan.style.display = 'inline-block';
+		} else {
+			childrenUl.style.display = 'block';
+			downArrowSpan.style.display = 'inline-block';
+			rightArrowSpan.style.display = 'none';
+		}
+	}
 
 	private async updateRelatedStates(node: TreeNode, checked: boolean) {
 		const filePath = node.abstractFile.path;
@@ -269,6 +289,5 @@ export class SyncView extends ItemView {
 			await updateParentState(node.parent);
 		}
 	}
-
 
 }
