@@ -1,19 +1,17 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, TAbstractFile, TFile, TFolder} from 'obsidian';
+import {Plugin} from 'obsidian';
 import * as dotenv from 'dotenv';
 import * as process from 'process';
-import LOGGER from './utils/Logger';
 import {DataStore} from './services/datastore';
 import {ChatGPTEnablerSettings} from 'src/interfaces/ISettings';
 import {ChatGPTEnablerSettingsTab} from 'src/api/SettingsTab';
-import {Document, DocumentMetadata} from './models/models';
 import ServiceLocator from "./utils/ServiceLocator";
 import {OpenAI} from "./services/openai";
 import {Chunks} from "./services/chunks";
 import {DatabasePolling} from "./services/DatabasePolling";
 import {UIController} from "./services/UIController";
 import {CommandHandler} from "./services/CommandHandler";
-import {COMMIT_VIEW_TYPE, CommitView} from "./api/CommitView";
-import {StagingArea} from "./api/StaginArea";
+import FileStateTreeBuilder from "./services/FileStateTreeBuilder";
+import {SyncView, VIEW_TYPE_SYNC_VIEW} from "./api/SyncView";
 
 dotenv.config({path: 'X:\\Development\\Projects\\Testing Obsidian Plugins\\.obsidian\\plugins\\obsidian-chatgpt-enabler-plugin\\.env'});
 
@@ -58,174 +56,32 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		this.serviceLocator.registerService(ServiceLocator.UI_CONTROLLING_SERVICE, uiController);
 
 		uiController.createSyncingIcons();
+		databasePollingService.activate();
 
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('ChatGPTEnabler');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple', name: 'Open sample modal (simple)', callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-//		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-//			console.log('click', evt);
-//		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-//		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
-
-		LOGGER.silly("onload()");
-		this.addCommand({
-			id: 'list-all-files', name: 'List All Files', callback: () => {
-				this.listAllFiles();
-			}
-		});
-
-		this.addCommand({
-			id: 'convert-files-to-documents', name: 'Convert Files to Documents', callback: () => {
-				this.convertFilesToDocuments();
-			}
-		});
-
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const ribbonIconEl = this.addRibbonIcon('lines-of-text', 'List All Files', (evt: MouseEvent) => {
-			this.listAllFiles();
-		});
-
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const ribbonIconEl2 = this.addRibbonIcon('file-text', 'Convert Files to Documents', (evt: MouseEvent) => {
-			this.convertFilesToDocuments();
-		});
-
-
-		const pollingButton = this.addStatusBarItem();
-		const iconContainer = pollingButton.createEl('span');
-
-// Set the inner HTML to the Lucide icon's SVG code with adjusted size
-		iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw-off"><path d="M21 8L18.74 5.74A9.75 9.75 0 0 0 12 3C11 3 10.03 3.16 9.13 3.47"/><path d="M8 16H3v5"/><path d="M3 12C3 9.51 4 7.26 5.64 5.64"/><path d="m3 16 2.26 2.26A9.75 9.75 0 0 0 12 21c2.49 0 4.74-1 6.36-2.64"/><path d="M21 12c0 1-.16 1.97-.47 2.87"/><path d="M21 3v5h-5"/><path d="M22 22 2 2"/></svg>`;
-
-		pollingButton.addEventListener('click', () => {
-			// Toggle the polling service
-			databasePollingService.toggle();
-
-			// Toggle the spinning state based on the polling state
-			if (databasePollingService.isActive()) {
-				iconContainer.addClass('spin-animation'); // Start spinning
-			} else {
-				iconContainer.removeClass('spin-animation'); // Stop spinning
-			}
-		});
-
-		pollingButton.addClass('mod-clickable');
-
-		// this.listAllFiles();
-		// this.listAllFiles();
-
-		// databasePollingService.activate();
-
-		// dataStoreService.pollCommand();
-
-
-		// const newLeaf = app.workspace.createLeafInParent(app.workspace.rightSplit,0);
+		const fileStateTreeBuilder = new FileStateTreeBuilder(dataStoreService);
 		this.registerView(
-			COMMIT_VIEW_TYPE,
-			(leaf) => new CommitView(leaf, new StagingArea(dataStoreService))
-			// (leaf) => new SyncView(leaf, dataStoreService)
+			VIEW_TYPE_SYNC_VIEW,
+			(leaf) => new SyncView(leaf, fileStateTreeBuilder)
 		);
+
 		this.addRibbonIcon("dice", "Activate view", () => {
 			this.activateView();
 		});
-
-		// app.vault.on()
-
-		// console.log(app.vault.getFiles());
-		// console.log("\n");
-		// console.log(app.vault.getAllLoadedFiles());
-		// console.log("\n");
-		// console.log(app.vault.adapter.list('/'));
-		// console.log("\n");
-		// console.log(app.vault.adapter.list('/Obsidian Plugin For ChatGPT'))
-		// app.vault.
-
-			/*const root: TFolder = app.vault.getRoot();
-
-// Define the callback function
-		const callback = (file: TAbstractFile) => {
-			// Do something with each file, such as printing its name
-			if(file instanceof TFolder)
-			console.log(file.name+'\t'+file.path);
-				// console.log(app.vault.adapter.list(file.path));
-
-		};
-
-// Call the static method
-		Vault.recurseChildren(root, callback);*/
-
-
-		// this.addRibbonIcon("dice", "Print leaf types", () => {
-		// 	console.log("iterateRootLeaves:\n");
-		// 	this.app.workspace.iterateRootLeaves((leaf) => {
-		// 		console.log(leaf.getRoot()+'\t'+ leaf.getViewState().group+ '\t' +leaf.getViewState().type);
-		//
-		// 	});
-		// 	console.log("iterateAllLeaves:\n");
-		// 	this.app.workspace.iterateAllLeaves((leaf) => {
-		// 		console.log(leaf.getRoot()+'\t'+ leaf.getViewState().group+ '\t' +leaf.getViewState().type);
-		// 	});
-		// });
-
 	}
 
+
 	async activateView() {
-		this.app.workspace.detachLeavesOfType(COMMIT_VIEW_TYPE);
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_SYNC_VIEW);
 
 		await this.app.workspace.getRightLeaf(false).setViewState({
-			type: COMMIT_VIEW_TYPE,
+			type: VIEW_TYPE_SYNC_VIEW,
 			active: true,
 		});
 
 		this.app.workspace.revealLeaf(
-			this.app.workspace.getLeavesOfType(COMMIT_VIEW_TYPE)[0]
+			this.app.workspace.getLeavesOfType(VIEW_TYPE_SYNC_VIEW)[0]
 		);
 	}
-
-
 
 	onunload() {
 		const pollingService: DatabasePolling = this.serviceLocator.getService(ServiceLocator.DATABASE_POLLING_SERVICE);
@@ -240,73 +96,4 @@ export default class ChatGPTEnablerPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	async listAllFiles() {
-		const root = this.app.vault.getRoot();
-		const log = this.listFilesInFolder(root, "", 0);
-		await this.writeLog(log);
-	}
-
-	private listFilesInFolder(folder: TFolder, log: string, level: number): string {
-		folder.children.forEach((child: TAbstractFile) => {
-			if (child instanceof TFolder) {
-				log += '- '.repeat(level) + `[Folder] ${child.name}\n`;
-				log = this.listFilesInFolder(child, log, level + 1);
-			} else if (child instanceof TFile) {
-				log += '- '.repeat(level) + `[File] ${child.name}\n`;
-			}
-		});
-		return log;
-	}
-
-
-
-	async convertFilesToDocuments() {
-		let log = '';
-		const documents: Document[] = [];
-		const vaultName = this.app.vault.getName();
-		for (const file of this.app.vault.getFiles()) {
-			if (file.extension === 'md' && file.basename !== 'logs') {
-				const content = await this.app.vault.read(file);
-				LOGGER.info("File: " + file.path);
-				const document = new Document({
-					id: file.basename, text: content, metadata: new DocumentMetadata({
-						source: 'file', sourceId: file.path, createdAt: file.stat.mtime.toString(), author: vaultName,
-					}),
-				});
-				documents.push(document);
-				log += JSON.stringify(document) + '\n';
-			}
-		}
-		await this.writeLog(log);
-//		await this.datastore.upsert('documents', documents);
-		new Notice('Yayy! Your files have been updated! 😎')
-		await this.writeLog('Finished upsert');
-	}
-
-	async writeLog(log: string) {
-		const logFile = this.app.vault.getAbstractFileByPath('logs.md');
-		if (logFile instanceof TFile) {
-			const currentContent = await this.app.vault.read(logFile);
-			const newContent = currentContent + '\n---\n' + log;
-			await this.app.vault.modify(logFile, newContent);
-		} else {
-			await this.app.vault.create('logs.md', log);
-		}
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
 }
