@@ -17,10 +17,10 @@ export default class FileStateTreeBuilder {
 		const obsidianFilesMap = new Map<string, TFile>(app.vault.getAllLoadedFiles()
 			.filter(f => f instanceof TFile)
 			.map(f => [(f as TFile).basename, f as TFile]));
-		console.log(obsidianFilesMap)
+		LOGGER.silly(obsidianFilesMap)
 		app.vault.getAllLoadedFiles().filter(f => f instanceof TFile).forEach(f => LOGGER.info((f as TFile).basename));
 		const syncedFiles = await this.fetchSyncedFiles();
-		console.log("Synced Files" + syncedFiles)
+		LOGGER.silly("Synced Files" + syncedFiles)
 		this.populateFileStateTree(fileStateTree, obsidianFilesMap, syncedFiles);
 		return fileStateTree;
 	}

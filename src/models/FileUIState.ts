@@ -19,8 +19,12 @@ export default class FileUIState {
 		this.checkedFiles.delete(filePath);
 	}
 
-	clearCheckedFiles(){
+	clearCheckedFiles() {
 		this.checkedFiles.clear();
+	}
+
+	isChecked(filePath: string) {
+		return this.checkedFiles.has(filePath);
 	}
 
 	expandFolder(folderPath: string) {
