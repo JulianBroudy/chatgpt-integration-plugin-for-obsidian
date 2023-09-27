@@ -32,29 +32,24 @@ export default class FileStateTreeBuilder {
 
 			if (loadedFile) {
 				const mtimeDate = new Date(loadedFile.stat.mtime);
-				const ctimeDate = new Date(loadedFile.stat.ctime);
-				LOGGER.silly('DB File:' + syncedFile.sourceId + '\ncreatedAtDate:' + createdAtDate);
-				LOGGER.silly('FS File:' + loadedFile.basename + '\nmtimeDate:' + mtimeDate + '\nctimeDate:' + ctimeDate);
 				if (createdAtDate < mtimeDate) {
 					LOGGER.silly('createdAtDate < mtimeDate:' + createdAtDate + ' < ' + mtimeDate);
-					this.addNode(fileStateTree,loadedFile, FileState.MODIFIED, syncedFile);
+					this.addNode(fileStateTree, loadedFile, FileState.MODIFIED, syncedFile);
 				}
 				obsidianFilesMap.delete(syncedFile.sourceId); // Remove from map to identify new files later
 			} else if (syncedFile.source == Source.FILE) {
-				LOGGER.silly("DELETED: " + loadedFile)
-				LOGGER.silly("DELETED: " + syncedFile.sourceId)
 				// TODO: find a way to handle deleted files
-				this.addNode(fileStateTree,new TFile(), FileState.DELETED, syncedFile);
+				LOGGER.warn("Currently not supporting deleted files!");
+				// this.addNode(fileStateTree, new TFile(), FileState.DELETED, syncedFile);
 				// this.addChange({document: syncedFile, type: 'deleted'}); // File is in database but not in Obsidian
 			}
 		});
 
 		// Process remaining Obsidian files that are not in the database (new files)
 		obsidianFilesMap.forEach(loadedFile => {
-			this.addNode(fileStateTree,loadedFile, FileState.NEW, new DocumentMetadata());
+			this.addNode(fileStateTree, loadedFile, FileState.NEW, new DocumentMetadata());
 		});
 	}
-
 
 	private async fetchSyncedFiles() {
 		const newlyFetchedFiles = await this.datastore.getSyncedDocuments();
@@ -62,9 +57,9 @@ export default class FileStateTreeBuilder {
 		return newlyFetchedFiles;
 	}
 
-	private addNode(fileStateTree: FileStateTree,loadedFile: TFile, MODIFIED: FileState, syncedFile: DocumentMetadata) {
-		fileStateTree.logMapState();
-		fileStateTree.addNode(loadedFile,MODIFIED,syncedFile);
-		fileStateTree.logMapState();
+	private addNode(fileStateTree: FileStateTree, loadedFile: TFile, fileState: FileState, syncedFile: DocumentMetadata) {
+		// fileStateTree.logMapState();
+		fileStateTree.addNode(loadedFile, fileState, syncedFile);
+		// fileStateTree.logMapState();
 	}
 }
