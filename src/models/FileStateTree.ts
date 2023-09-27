@@ -42,17 +42,6 @@ export default class FileStateTree {
 				folderSet.add(node);
 			}
 		}
-		// const dfs = (node: TreeNode) => {
-		// 	if (node.abstractFile instanceof TFolder) {
-		// 		folderSet.add(node);
-		// 	}
-		//
-		// 	for (const child of node.children.values()) {
-		// 		dfs(child);
-		// 	}
-		// };
-		//
-		// dfs(this.root);
 
 		return folderSet;
 	}
@@ -63,16 +52,6 @@ export default class FileStateTree {
 			node.parent.children.delete(abstractFile.name);
 			this.pathToNodeMap.delete(abstractFile.path);
 		}
-	}
-
-	// Function to propagate checkbox states upwards
-	propagateStateUpwards(node: TreeNode) {
-		// Logic to update parent nodes based on children's states
-	}
-
-	// Function to propagate checkbox states downwards
-	propagateStateDownwards(node: TreeNode, newState: FileState) {
-		// Logic to update children nodes based on parent's new state
 	}
 
 	snapshotState() {
