@@ -17,8 +17,6 @@ export class ChatGPTEnablerSettingsTab extends PluginSettingTab {
 		const {containerEl} = this;
 		containerEl.empty();
 
-//		containerEl.createEl('h1', {text: 'ChatGPT Enabler Settings'});
-
 		containerEl.createEl('h3', {text: 'Connections & Secrets'});
 		containerEl.createEl('h2', {text: 'OpenAI'});
 		this.addSensitiveConfigField(new Setting(containerEl), 'OpenAI API Key', 'It\'s a secret', this.plugin.settings.openAIApiKey);
@@ -64,7 +62,7 @@ export class ChatGPTEnablerSettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('New Notes\' Location')
 			.setDesc('When ChatGPT fails to specify a location for a new note.')
-			.addSearch(search =>{
+			.addSearch(search => {
 				new FolderSuggest(search.inputEl);
 				search.setPlaceholder("Example: Folder 1/Folder 2")
 					.setValue(this.plugin.settings.newMarkdownFileFolderLocation)
