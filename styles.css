@@ -80,7 +80,7 @@
 	margin-right: 6px;
 }
 
-.added {
+.new {
 	color: rgba(97, 140, 68, 1);
 }
 
@@ -90,4 +90,8 @@
 
 .deleted {
 	color: rgba(208, 97, 72, 1);
+}
+
+.commit-button-div button {
+	width: 100%;
 }
